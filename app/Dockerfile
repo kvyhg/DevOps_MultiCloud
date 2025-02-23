@@ -1,8 +1,8 @@
 # Use a Python base image
 FROM python:3.9-slim
 
-# Set the working directory
-WORKDIR /mypythonappapp
+# Set working directory
+WORKDIR /app
 
 # Install dependencies
 COPY requirements.txt .
