@@ -20,7 +20,7 @@ data:
         relabel_configs:
           - source_labels: [__meta_kubernetes_pod_label_app]
             action: keep
-            regex: prometheus
+            regex: prometheus 
 
       - job_name: 'kubernetes-grafana'
         kubernetes_sd_configs:
