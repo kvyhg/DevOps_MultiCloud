@@ -19,7 +19,7 @@ module "eks" {
   source          = "terraform-aws-modules/eks/aws"
   cluster_name    = "multi-cloud-cluster"
   cluster_version = "1.25"
-  subnets         = ["subnet-abc123", "subnet-def456"]
+  vpc_subnet_ids = ["subnet-abc123", "subnet-def456"]
 }
 
 # 🌐 GCP GKE Cluster
