@@ -29,9 +29,13 @@ then
     exit 1
 fi
 
-# Start Minikube
+# Start Minikube if not running
 echo "🚀 Starting Minikube..."
-minikube start --driver=docker
+if ! minikube status | grep -q "Running"; then
+    echo "❌ Minikube is not running! Restarting..."
+    minikube stop
+    minikube start --driver=docker
+fi
 
 # Set up Docker to use Minikube’s daemon
 echo "🔧 Configuring Docker to use Minikube..."
@@ -57,17 +61,22 @@ echo "🚀 App available at: $SERVICE_URL"
 
 # Set up Istio (if needed)
 echo "🚀 Setting up Istio..."
-kubectl apply -f istio-1.24.3/manifests
+kubectl apply -f istio/manifests/
 
 # Deploy monitoring tools
 echo "📈 Deploying monitoring tools (Prometheus & Grafana)..."
-kubectl apply -f monitoring/prometheus-deployment.yaml
-kubectl apply -f monitoring/grafana-deployment.yaml
+kubectl apply -f monitoring/prometheus-deployment.yaml -n monitoring
+kubectl apply -f monitoring/grafana-deployment.yaml -n monitoring
 
 # Wait for monitoring pods to be ready
 echo "⏳ Waiting for monitoring tools to be ready..."
-kubectl wait --for=condition=ready pod -l app=prometheus --timeout=90s
-kubectl wait --for=condition=ready pod -l app=grafana --timeout=90s
+kubectl wait --for=condition=ready pod -l app=prometheus -n monitoring --timeout=90s
+kubectl wait --for=condition=ready pod -l app=grafana -n monitoring --timeout=90s
+
+# Ensure Prometheus & Grafana services exist before port-forwarding
+echo "⏳ Waiting for Prometheus and Grafana services to be available..."
+until kubectl get svc prometheus-service -n monitoring &>/dev/null; do sleep 5; done
+until kubectl get svc grafana-service -n monitoring &>/dev/null; do sleep 5; done
 
 # Free up ports if already in use
 echo "🔍 Checking if ports 3000 and 9090 are free..."
@@ -77,8 +86,8 @@ echo "✅ Ports cleared!"
 
 # Forward ports for Prometheus and Grafana
 echo "🔗 Forwarding ports for Prometheus and Grafana..."
-kubectl port-forward service/prometheus-service 9090:9090 > /dev/null 2>&1 &
-kubectl port-forward service/grafana-service 3000:3000 > /dev/null 2>&1 &
+kubectl port-forward service/prometheus-service 9090:9090 -n monitoring > /dev/null 2>&1 &
+kubectl port-forward service/grafana-service 3000:3000 -n monitoring > /dev/null 2>&1 &
 
 # Final output
 echo "🎯 Deployment complete!"
