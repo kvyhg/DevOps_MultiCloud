@@ -1,6 +1,8 @@
+from prometheus_flask_exporter import PrometheusMetrics
 from flask import Flask
 
 app = Flask(__name__)
+metrics = PrometheusMetrics(app)  # This exposes `/metrics` endpoint
 
 @app.route('/')
 def home():

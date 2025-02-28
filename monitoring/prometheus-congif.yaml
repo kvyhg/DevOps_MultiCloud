@@ -1,0 +1,37 @@
+# ConfigMap for Prometheus Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  labels:
+    name: prometheus-config
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 5s  # Reduced interval for faster metric updates
+
+    scrape_configs:
+      - job_name: 'kubernetes-nodes'
+        kubernetes_sd_configs:
+          - role: node
+
+      - job_name: 'kubernetes-prometheus'
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: prometheus 
+
+      - job_name: 'kubernetes-grafana'
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: grafana
+            target_label: instance
+
+      - job_name: 'flask-app'
+        static_configs:
+          - targets: ['flask-container:5000']  # Ensures Flask app is correctly discovered

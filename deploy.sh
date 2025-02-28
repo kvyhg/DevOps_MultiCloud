@@ -1,91 +1,89 @@
 #!/bin/bash
 
-# Navigate to the app directory
-cd app
+# Navigate to the project root directory
+cd "$(dirname "$0")"
 
-# Build the Docker image
-echo "🐳 Building Flask app Docker image..."
-docker build -t flask-app .
+echo "🚀 Deploying Flask App with Prometheus Monitoring..."
 
-# Stop and remove any running container with the same name
-echo "🛑 Stopping any existing Flask container..."
-docker stop flask-container 2>/dev/null
-docker rm flask-container 2>/dev/null
-
-# Run the Flask container on port 5000
-echo "🚀 Running Flask app container..."
-docker run -d -p 5000:5000 --name flask-container flask-app
-
-echo "✅ Flask app deployed! Access it at http://localhost:5000"
-
-# Move back to the root directory
-cd ..
-
-# Check if Minikube is installed
-echo "🔍 Checking if Minikube is installed..."
-if ! command -v minikube &> /dev/null
-then
-    echo "❌ Minikube not found! Please install Minikube first."
+# Ensure Dockerfile exists before building
+if [ ! -f "app/Dockerfile" ]; then
+    echo "❌ Dockerfile not found in app/ directory! Exiting..."
     exit 1
 fi
 
-# Start Minikube if not running
+# Build and start services using Docker Compose
+echo "🐳 Starting Docker services..."
+docker-compose up -d --build
+
+# Verify services are running
+echo "🔍 Checking running containers..."
+docker ps
+
+# Check Prometheus service
+echo "🔍 Verifying Prometheus is running..."
+if ! docker ps | grep -q "prometheus"; then
+    echo "❌ Prometheus is not running!"
+    exit 1
+fi
+
+# Minikube Setup
+echo "🔍 Checking if Minikube is installed..."
+if ! command -v minikube &> /dev/null
+then
+    echo "❌ Minikube not found! Please install it."
+    exit 1
+fi
+
 echo "🚀 Starting Minikube..."
 if ! minikube status | grep -q "Running"; then
     echo "❌ Minikube is not running! Restarting..."
     minikube stop
+    minikube delete
     minikube start --driver=docker
 fi
 
 # Set up Docker to use Minikube’s daemon
-echo "🔧 Configuring Docker to use Minikube..."
+echo "🔧 Configuring Docker for Minikube..."
 eval $(minikube docker-env)
 
-# Build the Docker image for Kubernetes
-echo "🐳 Building Docker image for Kubernetes..."
+# Build the app image for Kubernetes
+echo "🐳 Building app image for Kubernetes..."
 docker build -t my-app:latest ./app
 
+# Ensure Kubernetes files exist before applying
+if [ ! -f "Kubernetes/deployment.yaml" ] || [ ! -f "Kubernetes/service.yaml" ]; then
+    echo "❌ Kubernetes deployment/service files are missing! Exiting..."
+    exit 1
+fi
+
 # Deploy application to Kubernetes
-echo "📦 Deploying application to Kubernetes..."
+echo "📦 Deploying to Kubernetes..."
 kubectl apply -f Kubernetes/deployment.yaml
 kubectl apply -f Kubernetes/service.yaml
 
-# Wait for application pods to be ready
-echo "⏳ Waiting for application pods to be ready..."
+# Wait for Pods to be ready
+echo "⏳ Waiting for Pods to be ready..."
 kubectl wait --for=condition=ready pod -l app=my-app --timeout=90s
 
 # Retrieve service URL
-echo "🔍 Retrieving service URL..."
 SERVICE_URL=$(minikube service my-app-service --url)
 echo "🚀 App available at: $SERVICE_URL"
 
-# Set up Istio (if needed)
-echo "🚀 Setting up Istio..."
-kubectl apply -f istio/manifests/
+# Ensure monitoring namespace exists
+kubectl get namespace monitoring &>/dev/null || kubectl create namespace monitoring
 
-# Deploy monitoring tools
-echo "📈 Deploying monitoring tools (Prometheus & Grafana)..."
+# Deploy Monitoring (Prometheus & Grafana)
+echo "📈 Deploying Monitoring Tools..."
 kubectl apply -f monitoring/prometheus-deployment.yaml -n monitoring
 kubectl apply -f monitoring/grafana-deployment.yaml -n monitoring
 
-# Wait for monitoring pods to be ready
-echo "⏳ Waiting for monitoring tools to be ready..."
+# Wait for monitoring services
+echo "⏳ Waiting for Prometheus & Grafana..."
 kubectl wait --for=condition=ready pod -l app=prometheus -n monitoring --timeout=90s
 kubectl wait --for=condition=ready pod -l app=grafana -n monitoring --timeout=90s
 
-# Ensure Prometheus & Grafana services exist before port-forwarding
-echo "⏳ Waiting for Prometheus and Grafana services to be available..."
-until kubectl get svc prometheus-service -n monitoring &>/dev/null; do sleep 5; done
-until kubectl get svc grafana-service -n monitoring &>/dev/null; do sleep 5; done
-
-# Free up ports if already in use
-echo "🔍 Checking if ports 3000 and 9090 are free..."
-sudo lsof -ti :3000 | xargs -r sudo kill -9
-sudo lsof -ti :9090 | xargs -r sudo kill -9
-echo "✅ Ports cleared!"
-
-# Forward ports for Prometheus and Grafana
-echo "🔗 Forwarding ports for Prometheus and Grafana..."
+# Port forwarding for monitoring
+echo "🔗 Setting up port-forwarding..."
 kubectl port-forward service/prometheus-service 9090:9090 -n monitoring > /dev/null 2>&1 &
 kubectl port-forward service/grafana-service 3000:3000 -n monitoring > /dev/null 2>&1 &
 
@@ -94,3 +92,6 @@ echo "🎯 Deployment complete!"
 echo "📊 Prometheus: http://localhost:9090"
 echo "📈 Grafana: http://localhost:3000"
 echo "🚀 App: $SERVICE_URL"
+
+#chmod +x deploy.sh
+#./deploy.sh
