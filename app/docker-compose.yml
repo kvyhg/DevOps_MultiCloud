@@ -5,7 +5,7 @@ services:
     build:
       context: .
       dockerfile: app/Dockerfile  # Adjust this if your Dockerfile is inside a subfolder
-    container_name: flask-container
+    container_name: flask-container-new
     ports:
       - "5000:5000"
     volumes:
