@@ -21,8 +21,15 @@ docker ps
 
 # Check Prometheus service
 echo "🔍 Verifying Prometheus is running..."
-if ! docker ps | grep -q "prometheus"; then
+if ! docker ps | grep -q "prom/prometheus"; then
     echo "❌ Prometheus is not running!"
+    exit 1
+fi
+
+# Check Grafana service
+echo "🔍 Verifying Grafana is running..."
+if ! docker ps | grep -q "grafana/grafana"; then
+    echo "❌ Grafana is not running!"
     exit 1
 fi
 
@@ -47,7 +54,7 @@ echo "🔧 Configuring Docker for Minikube..."
 eval $(minikube docker-env)
 
 # Build the app image for Kubernetes
-echo "🐳 Building app image for Kubernetes..."
+echo "�� Building app image for Kubernetes..."
 docker build -t my-app:latest ./app
 
 # Ensure Kubernetes files exist before applying
@@ -92,6 +99,3 @@ echo "🎯 Deployment complete!"
 echo "📊 Prometheus: http://localhost:9090"
 echo "📈 Grafana: http://localhost:3000"
 echo "🚀 App: $SERVICE_URL"
-
-#chmod +x deploy.sh
-#./deploy.sh
