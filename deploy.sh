@@ -7,7 +7,7 @@ echo "🚀 Deploying Flask App with Prometheus Monitoring..."
 
 # Ensure Dockerfile exists before building
 if [ ! -f "app/Dockerfile" ]; then
-    echo "❌ Dockerfile not found in app/ directory! Exiting..."
+    echo "❌ Dockerfile not found in directory! Exiting..."
     exit 1
 fi
 
