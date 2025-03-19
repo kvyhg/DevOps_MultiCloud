@@ -8,15 +8,15 @@ This project demonstrates a multi-cloud deployment strategy using **Docker** and
 - **Orchestration**: Kubernetes for deploying, managing, and scaling applications.
 - **Multi-Cloud Ready**: Ensures the app runs across multiple clusters without vendor lock-in.
 - **Monitoring**: Integrated **Prometheus** and **Grafana** for real-time metrics and visualization.
-- **Service Mesh**: Uses **Istio** for secure service-to-service communication.
-- **Infrastructure as Code**: Managed with **Terraform**.
+- **Service Mesh**: Uses **Istio** for secure service-to-service communication. (will be added later)
+- **Infrastructure as Code**: Managed with **Terraform**. (will be added later)
 
 ### ⚙️ **Tools & Technologies**
 - **Docker**: Containerization
 - **Kubernetes**: Cluster orchestration
 - **Terraform**: Infrastructure as Code (IaC)
 - **Prometheus & Grafana**: Monitoring and visualization
-- **Istio**: Service mesh for traffic management
+- **Istio**: Service mesh for traffic management (to be added soon)
 
 ---
 
